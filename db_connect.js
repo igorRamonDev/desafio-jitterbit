@@ -1,24 +1,24 @@
-require ('dotenv').config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+import 'dotenv/config'
+import mongoose from 'mongoose'
 
-const uri = process.env.MONGODB_URI;
+const uri = process.env.MONGODB_URI
+const dbName = process.env.MONGODB_DB_NAME
 
-const client = new MongoClient(uri,  {
-        serverApi: {
-            version: ServerApiVersion.v1,
-            strict: true,
-            deprecationErrors: true,
-        }
-    }
-);
-
-async function run() {
-  try {
-    await client.connect();
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    await client.close();
-  }
+if (!uri) {
+  throw new Error('Erro: Definir o MONGODB_URI no arquivo .env.')
 }
-run().catch(console.dir);
+
+let isConnected = false
+
+export async function connectDb() {
+  if (isConnected) {
+    return mongoose.connection
+  }
+
+  await mongoose.connect(uri, {
+    dbName
+  })
+
+  isConnected = true
+  return mongoose.connection
+}
