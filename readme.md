@@ -125,9 +125,12 @@ salvar no banco de dados. O JSON ficará desta forma:
 
 - Copiar .env.example para .env e configurar as variáveis
 - Instalar dependencias com `npm install`
-- Subir a API com `node server.js`
+- Subir a API com `npm start`
+- Para desenvolvimento com reload: `npm run dev`
 - Testar e visualizar documentacao em `http://localhost:3000/docs`
-- Endpoints implementados no arquivo `server.js`
+- Bootstrap do servidor em `server.js`
+- Endpoints implementados em `src/routes/orderRoutes.js`
+
 
 ## Banco de Dados
 
