@@ -1,9 +1,16 @@
 import Fastify from 'fastify'
 import mongoose from 'mongoose'
+import swagger from '@fastify/swagger'
+import swaggerUi from '@fastify/swagger-ui'
 import { connectDb } from './db_connect.js'
 
 const fastify = Fastify({
-  logger: true
+  logger: true,
+  ajv: {
+    customOptions: {
+      strictSchema: false
+    }
+  }
 })
 
 const orderItemSchema = new mongoose.Schema(
@@ -56,6 +63,124 @@ function mapOrderToApiPayload(orderDocument) {
   }
 }
 
+const numeroPedidoParamsSchema = {
+  type: 'object',
+  required: ['numeroPedido'],
+  additionalProperties: false,
+  properties: {
+    numeroPedido: { type: 'string', minLength: 1, example: 'v10089016vdb' }
+  },
+  example: {
+    numeroPedido: 'v10089016vdb'
+  }
+}
+
+const orderItemApiSchema = {
+  type: 'object',
+  required: ['idItem', 'quantidadeItem', 'valorItem'],
+  additionalProperties: false,
+  properties: {
+    idItem: { type: 'string', pattern: '^[0-9]+$', example: '2434' },
+    quantidadeItem: { type: 'integer', minimum: 1, example: 1 },
+    valorItem: { type: 'number', minimum: 0, example: 1000 }
+  },
+  example: {
+    idItem: '2434',
+    quantidadeItem: 1,
+    valorItem: 1000
+  }
+}
+
+const orderApiSchema = {
+  type: 'object',
+  required: ['numeroPedido', 'valorTotal', 'dataCriacao', 'items'],
+  additionalProperties: false,
+  properties: {
+    numeroPedido: { type: 'string', minLength: 1, example: 'v10089016vdb' },
+    valorTotal: { type: 'number', minimum: 0, example: 10000 },
+    dataCriacao: {
+      type: 'string',
+      format: 'date-time',
+      example: '2023-07-19T12:24:11.529Z'
+    },
+    items: {
+      type: 'array',
+      minItems: 1,
+      items: orderItemApiSchema
+    }
+  },
+  example: {
+    numeroPedido: 'v10089016vdb',
+    valorTotal: 10000,
+    dataCriacao: '2023-07-19T12:24:11.529Z',
+    items: [
+      {
+        idItem: '2434',
+        quantidadeItem: 1,
+        valorItem: 1000
+      }
+    ]
+  }
+}
+
+const updateOrderBodySchema = {
+  type: 'object',
+  required: ['valorTotal', 'dataCriacao', 'items'],
+  additionalProperties: false,
+  properties: {
+    valorTotal: { type: 'number', minimum: 0, example: 10000 },
+    dataCriacao: {
+      type: 'string',
+      format: 'date-time',
+      example: '2023-07-19T12:24:11.529Z'
+    },
+    items: {
+      type: 'array',
+      minItems: 1,
+      items: orderItemApiSchema
+    }
+  },
+  example: {
+    valorTotal: 10000,
+    dataCriacao: '2023-07-19T12:24:11.529Z',
+    items: [
+      {
+        idItem: '2434',
+        quantidadeItem: 1,
+        valorItem: 1000
+      }
+    ]
+  }
+}
+
+const errorMessageSchema = {
+  type: 'object',
+  required: ['message'],
+  additionalProperties: false,
+  properties: {
+    message: { type: 'string', example: 'Pedido não encontrado' }
+  },
+  example: {
+    message: 'Pedido não encontrado'
+  }
+}
+
+await fastify.register(swagger, {
+  openapi: {
+    info: {
+      title: 'API de Pedidos',
+      description: 'API para cadastro e consulta de pedidos',
+      version: '1.0.0'
+    },
+    servers: [{ url: 'http://localhost:3000' }],
+    tags: [{ name: 'Orders', description: 'Operacoes de pedidos' }]
+  }
+})
+
+await fastify.register(swaggerUi, {
+  routePrefix: '/docs'
+})
+
 fastify.get('/', async function () {
   return { hello: 'world' }
 })
@@ -65,29 +190,14 @@ fastify.post(
   '/order',
   {
     schema: {
-      body: {
-        type: 'object',
-        required: ['numeroPedido', 'valorTotal', 'dataCriacao', 'items'],
-        additionalProperties: false,
-        properties: {
-          numeroPedido: { type: 'string', minLength: 1 },
-          valorTotal: { type: 'number', minimum: 0 },
-          dataCriacao: { type: 'string', format: 'date-time' },
-          items: {
-            type: 'array',
-            minItems: 1,
-            items: {
-              type: 'object',
-              required: ['idItem', 'quantidadeItem', 'valorItem'],
-              additionalProperties: false,
-              properties: {
-                idItem: { type: 'string', pattern: '^[0-9]+$' },
-                quantidadeItem: { type: 'integer', minimum: 1 },
-                valorItem: { type: 'number', minimum: 0 }
-              }
-            }
-          }
-        }
+      tags: ['Orders'],
+      summary: 'Criar pedido',
+      description: 'Cria um novo pedido',
+      body: orderApiSchema,
+      response: {
+        201: orderApiSchema,
+        409: errorMessageSchema,
+        500: errorMessageSchema
       }
     }
   },
@@ -122,6 +232,20 @@ fastify.post(
 //lista os pedidos ordenados pelos mais recentes primeiro
 fastify.get(
   '/order/list',
+  {
+    schema: {
+      tags: ['Orders'],
+      summary: 'Listar pedidos',
+      description: 'Lista todos os pedidos, do mais recente para o mais antigo',
+      response: {
+        200: {
+          type: 'array',
+          items: orderApiSchema
+        },
+        500: errorMessageSchema
+      }
+    }
+  },
   async function (request, reply) {
     try {
       await connectDb()
@@ -141,13 +265,14 @@ fastify.get(
   '/order/:numeroPedido',
   {
     schema: {
-      params: {
-        type: 'object',
-        required: ['numeroPedido'],
-        additionalProperties: false,
-        properties: {
-          numeroPedido: { type: 'string', minLength: 1 }
-        }
+      tags: ['Orders'],
+      summary: 'Buscar pedido por numero',
+      description: 'Retorna os dados de um pedido pelo numeroPedido',
+      params: numeroPedidoParamsSchema,
+      response: {
+        200: orderApiSchema,
+        404: errorMessageSchema,
+        500: errorMessageSchema
       }
     }
   },
@@ -167,6 +292,87 @@ fastify.get(
     } catch (error) {
       request.log.error(error)
       return reply.code(500).send({ message: 'Erro ao buscar pedido' })
+    }
+  }
+)
+
+//atualizar um pedido existente pelo numeroPedido
+fastify.put(
+  '/order/:numeroPedido',
+  {
+    schema: {
+      tags: ['Orders'],
+      summary: 'Atualizar pedido',
+      description: 'Atualiza um pedido existente pelo numeroPedido',
+      params: numeroPedidoParamsSchema,
+      body: updateOrderBodySchema,
+      response: {
+        200: orderApiSchema,
+        404: errorMessageSchema,
+        500: errorMessageSchema
+      }
+    }
+  },
+  async function (request, reply) {
+    const { numeroPedido } = request.params
+    const { valorTotal, dataCriacao, items } = request.body
+
+    try {
+      await connectDb()
+
+      const updatedOrder = await Order.findOneAndUpdate(
+        { orderId: numeroPedido },
+        {
+          value: valorTotal,
+          creationDate: new Date(dataCriacao),
+          items: items.map((item) => ({
+            productId: Number(item.idItem),
+            quantity: item.quantidadeItem,
+            price: item.valorItem
+          }))
+        },
+        { new: true }
+      )
+
+      if (!updatedOrder) {
+        return reply.code(404).send({ message: 'Pedido não encontrado' })
+      }
+
+      return reply.send(mapOrderToApiPayload(updatedOrder))
+    } catch (error) {
+      request.log.error(error)
+      return reply.code(500).send({ message: 'Erro ao atualizar pedido' })
+    }
+  }
+)
+
+//deleta o pedido existente pelo numeroPedido
+fastify.delete(
+  '/order/:numeroPedido',
+  {
+    schema: {
+      tags: ['Orders'],
+      summary: 'Excluir pedido',
+      description: 'Exclui um pedido existente pelo numeroPedido',
+      params: numeroPedidoParamsSchema,
+      response: {
+        204: { type: 'null' },
+        500: errorMessageSchema
+      }
+    }
+  },
+  async function (request, reply) {
+    const { numeroPedido } = request.params
+
+    try {
+      await connectDb()
+
+      await Order.deleteOne({ orderId: numeroPedido })
+
+      return reply.code(204).send()
+    } catch (error) {
+      request.log.error(error)
+      return reply.code(500).send({ message: 'Erro ao excluir pedido' })
     }
   }
 )
