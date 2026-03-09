@@ -1,3 +1,68 @@
+# API de Pedidos
+
+API desenvolvida em Node.js utilizando Fastify e MongoDB Atlas.
+
+## Tecnologias
+- Node.js
+- Fastify
+- MongoDB Atlas
+- Mongoose
+- Swagger
+
+## Estrutura do Projeto
+
+```
+server.js
+src/
+ ├── app.js
+ ├── config/
+ │    └── db.js
+ ├── models/
+ │    └── order.js
+ ├── routes/
+ │    └── orderRoutes.js
+ └── schemas/
+      └── orderSchemas.js
+```
+
+## Executar
+
+```bash
+npm install
+npm run dev
+```
+
+Servidor inicia em:
+
+```
+http://localhost:3000
+```
+
+## Documentação Swagger
+
+```
+http://localhost:3000/docs
+```
+
+## Instruções para executar o projeto
+
+- Copiar .env.example para .env e configurar as variáveis
+- Instalar dependências com `npm install`
+- Subir a API com `npm start`
+- Para desenvolvimento com reload: `npm run dev`
+- Testar e visualizar documentação em `http://localhost:3000/docs`
+- Bootstrap do servidor em `server.js`
+- Endpoints implementados em `src/routes/orderRoutes.js`
+
+
+## Banco de Dados
+
+A aplicação utiliza MongoDB para persistência dos dados.
+
+O projeto foi desenvolvido utilizando MongoDB Atlas (cluster gratuito), mas também pode ser executado com uma instância local do MongoDB.
+
+Configure a variável de ambiente conforme o .env.example
+
 # Desafio
 
 Devera desenvolver uma API em Node.js usando o javascript.
@@ -15,7 +80,7 @@ Criar endpoints para as seguintes operações:
   URL: `http://localhost:3000/order/v10089016vdb`
 - Listar todos os pedidos (opcional)
   URL: `http://localhost:3000/order/list`
-- Atualizar pedido por parametro na URL (opcional)070924
+- Atualizar pedido por parametro na URL (opcional)
   URL: `http://localhost:3000/order/v10089016vdb`
 - Deletar pedido por parametro na URL (opcional)
   URL: `http://localhost:3000/order/v10089016vdb`
@@ -121,21 +186,3 @@ salvar no banco de dados. O JSON ficará desta forma:
 - Implementar autenticacao basica (ex.: JWT) (opcional)
 - Documentar API com Swagger ou Postman (opcional)
 
-## Instrucoes basicas do codigo
-
-- Copiar .env.example para .env e configurar as variáveis
-- Instalar dependencias com `npm install`
-- Subir a API com `npm start`
-- Para desenvolvimento com reload: `npm run dev`
-- Testar e visualizar documentacao em `http://localhost:3000/docs`
-- Bootstrap do servidor em `server.js`
-- Endpoints implementados em `src/routes/orderRoutes.js`
-
-
-## Banco de Dados
-
-A aplicação utiliza MongoDB.
-
-O projeto foi desenvolvido utilizando MongoDB Atlas (cluster gratuito), mas também pode ser executado com uma instância local do MongoDB.
-
-Configure a variável de ambiente conforme o .env.example
