@@ -132,6 +132,18 @@
     }
   }
 
+  export const unauthorizedErrorSchema = {
+    type: 'object',
+    required: ['message'],
+    additionalProperties: false,
+    properties: {
+      message: { type: 'string', example: 'Token invalido ou ausente' }
+    },
+    example: {
+      message: 'Token invalido ou ausente'
+    }
+  }
+
   export const validationErrorSchema = {
     type: 'object',
     required: ['statusCode', 'error', 'message'],

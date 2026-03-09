@@ -4,23 +4,29 @@ import {
   errorMessageSchema,
   numeroPedidoParamsSchema,
   orderResponseSchema,
+  unauthorizedErrorSchema,
   updateOrderBodySchema,
   validationErrorSchema
 } from '../schemas/orderSchemas.js'
 
 export async function orderRoutes(fastify) {
+  //Adiciona autenticação JWT a todas as rotas de pedidos
+  fastify.addHook('preHandler', fastify.authenticate)
+
 // Criar um novo pedido
   fastify.post(
     '/order',
     {
       schema: {
         tags: ['Orders'],
+        security: [{ BearerAuth: [] }],
         summary: 'Criar pedido',
         description: 'Cria um novo pedido a partir do payload da API e realiza o mapeamento dos campos para o formato armazenado no banco de dados.',
         body: createOrderRequestSchema,
         response: {
           201: orderResponseSchema,
           400: validationErrorSchema,
+          401: unauthorizedErrorSchema,
           409: errorMessageSchema,
           500: errorMessageSchema
         }
@@ -43,7 +49,8 @@ export async function orderRoutes(fastify) {
 
         return reply.code(201).send(mapOrderToApiPayload(createdOrder))
       } catch (error) {
-        if (error?.code === 11000) { //trata unique constraint do numeroPedido
+        //trata unique constraint do numeroPedido
+        if (error?.code === 11000) { 
           return reply.code(409).send({ message: 'Pedido com este numeroPedido já existe' })
         }
         request.log.error(error)
@@ -58,6 +65,7 @@ export async function orderRoutes(fastify) {
     {
       schema: {
         tags: ['Orders'],
+        security: [{ BearerAuth: [] }],
         summary: 'Listar pedidos',
         description: 'Retorna todos os pedidos cadastrados, ordenados pela data de criação do mais recente para o mais antigo.',
         response: {
@@ -65,12 +73,14 @@ export async function orderRoutes(fastify) {
             type: 'array',
             items: orderResponseSchema
           },
+          401: unauthorizedErrorSchema,
           500: errorMessageSchema
         }
       }
     },
     async function (request, reply) {
       try {
+        //Ordena os pedidos pela data de criação do mais recente para o mais antigo
         const orders = await Order.find().sort({ creationDate: -1 })
 
         return reply.send(orders.map(mapOrderToApiPayload))
@@ -87,11 +97,13 @@ export async function orderRoutes(fastify) {
     {
       schema: {
         tags: ['Orders'],
+        security: [{ BearerAuth: [] }],
         summary: 'Buscar pedido por número',
         description: 'Retorna os dados de um pedido específico com base no número do pedido.',
         params: numeroPedidoParamsSchema,
         response: {
           200: orderResponseSchema,
+          401: unauthorizedErrorSchema,
           404: errorMessageSchema,
           500: errorMessageSchema
         }
@@ -121,6 +133,7 @@ export async function orderRoutes(fastify) {
     {
       schema: {
         tags: ['Orders'],
+        security: [{ BearerAuth: [] }],
         summary: 'Atualizar pedido',
         description: 'Atualiza os dados de um pedido existente com base no número do pedido informado.',
         params: numeroPedidoParamsSchema,
@@ -128,6 +141,7 @@ export async function orderRoutes(fastify) {
         response: {
           200: orderResponseSchema,
           400: validationErrorSchema,
+          401: unauthorizedErrorSchema,
           404: errorMessageSchema,
           500: errorMessageSchema
         }
@@ -170,11 +184,13 @@ export async function orderRoutes(fastify) {
     {
       schema: {
         tags: ['Orders'],
+        security: [{ BearerAuth: [] }],
         summary: 'Excluir pedido',
         description: 'Exclui um pedido existente pelo numeroPedido. A operação é idempotente e retorna 204 mesmo se o pedido não existir.',
         params: numeroPedidoParamsSchema,
         response: {
           204: { type: 'null' },
+          401: unauthorizedErrorSchema,
           500: errorMessageSchema
         }
       }
@@ -183,6 +199,7 @@ export async function orderRoutes(fastify) {
       const { numeroPedido } = request.params
 
       try {
+        //retorna 204 mesmo se o pedido não existir, garantindo idempotência
         await Order.deleteOne({ orderId: numeroPedido })
 
         return reply.code(204).send()

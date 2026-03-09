@@ -16,13 +16,16 @@ server.js
 src/
  ├── app.js
  ├── config/
+ │    ├── auth.js
  │    └── db.js
  ├── models/
  │    └── order.js
  ├── routes/
+ │    ├── authRoutes.js
  │    └── orderRoutes.js
  └── schemas/
-      └── orderSchemas.js
+   ├── authSchemas.js
+   └── orderSchemas.js
 ```
 
 ## Executar
@@ -52,7 +55,45 @@ http://localhost:3000/docs
 - Para desenvolvimento com reload: `npm run dev`
 - Testar e visualizar documentação em `http://localhost:3000/docs`
 - Bootstrap do servidor em `server.js`
-- Endpoints implementados em `src/routes/orderRoutes.js`
+- Endpoints implementados em `src/routes/authRoutes.js` e `src/routes/orderRoutes.js`
+
+## Autenticação JWT
+
+Foi implementado um endpoint `POST /auth` para emissao de token JWT.
+
+O `username` e `password` enviados no body devem bater com os valores de `AUTH_USERNAME` e `AUTH_PASSWORD` no `.env`.
+
+Variaveis de ambiente relacionadas:
+
+- `AUTH_USERNAME` (obrigatorio)
+- `AUTH_PASSWORD` (obrigatorio)
+- `JWT_SECRET` (obrigatorio)
+- `JWT_EXPIRES_IN` (opcional, padrao `1h`)
+
+Exemplo de requisicao:
+
+```json
+{
+  "username": "jitterbit",
+  "password": "jitterbit123"
+}
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "token": "<jwt>",
+  "tokenType": "Bearer",
+  "expiresIn": "1h"
+}
+```
+
+As rotas `/order/*` exigem o header:
+
+```bash
+Authorization: Bearer <jwt>
+```
 
 
 ## Banco de Dados
@@ -108,6 +149,7 @@ Exemplo de request:
 
 ```bash
 curl --location 'http://localhost:3000/order' \
+  --header 'Authorization: Bearer <jwt>' \
   --header 'Content-Type: application/json' \
   --data '{
     "numeroPedido": "v10089015vdb-01",

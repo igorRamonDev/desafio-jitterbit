@@ -1,7 +1,10 @@
 import Fastify from 'fastify'
 import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
+import jwt from '@fastify/jwt'
 import { connectDb } from './config/db.js'
+import { authConfig } from './config/auth.js'
+import { authRoutes } from './routes/authRoutes.js'
 import { orderRoutes } from './routes/orderRoutes.js'
 
 export async function buildApp() {
@@ -23,8 +26,20 @@ export async function buildApp() {
         description: 'API para cadastro e consulta de pedidos',
         version: '1.0.0'
       },
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT'
+          }
+        }
+      },
       servers: [{ url: 'http://localhost:3000' }],
-      tags: [{ name: 'Orders', description: 'Operacoes de pedidos' }]
+      tags: [
+        { name: 'Auth', description: 'Autenticacao de usuario' },
+        { name: 'Orders', description: 'Operacoes de pedidos' }
+      ]
     }
   })
 
@@ -36,6 +51,19 @@ export async function buildApp() {
     return reply.redirect('/docs')
   })
 
+  await fastify.register(jwt, {
+    secret: authConfig.jwtSecret
+  })
+  //Middleware de autenticação JWT para rotas protegidas
+  fastify.decorate('authenticate', async function (request, reply) {
+    try {
+      await request.jwtVerify()
+    } catch {
+      return reply.code(401).send({ message: 'Token invalido ou ausente' })
+    }
+  })
+
+  await fastify.register(authRoutes)
   await fastify.register(orderRoutes)
 
   return fastify
