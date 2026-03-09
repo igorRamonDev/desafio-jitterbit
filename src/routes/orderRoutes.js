@@ -1,4 +1,3 @@
-import { connectDb } from '../config/db.js'
 import { Order, mapOrderToApiPayload } from '../models/order.js'
 import {
   createOrderRequestSchema,
@@ -31,8 +30,6 @@ export async function orderRoutes(fastify) {
       const { numeroPedido, valorTotal, dataCriacao, items } = request.body
 
       try {
-        await connectDb()
-
         const createdOrder = await Order.create({
           orderId: numeroPedido,
           value: valorTotal,
@@ -74,8 +71,6 @@ export async function orderRoutes(fastify) {
     },
     async function (request, reply) {
       try {
-        await connectDb()
-
         const orders = await Order.find().sort({ creationDate: -1 })
 
         return reply.send(orders.map(mapOrderToApiPayload))
@@ -106,8 +101,6 @@ export async function orderRoutes(fastify) {
       const { numeroPedido } = request.params
 
       try {
-        await connectDb()
-
         const order = await Order.findOne({ orderId: numeroPedido })
 
         if (!order) {
@@ -145,8 +138,6 @@ export async function orderRoutes(fastify) {
       const { valorTotal, dataCriacao, items } = request.body
 
       try {
-        await connectDb()
-
         const updatedOrder = await Order.findOneAndUpdate(
           { orderId: numeroPedido },
           {
@@ -192,8 +183,6 @@ export async function orderRoutes(fastify) {
       const { numeroPedido } = request.params
 
       try {
-        await connectDb()
-
         await Order.deleteOne({ orderId: numeroPedido })
 
         return reply.code(204).send()

@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
+import { connectDb } from './config/db.js'
 import { orderRoutes } from './routes/orderRoutes.js'
 
 export async function buildApp() {
@@ -12,6 +13,8 @@ export async function buildApp() {
       }
     }
   })
+
+  await connectDb()
 
   await fastify.register(swagger, {
     openapi: {
